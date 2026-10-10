@@ -1,0 +1,33 @@
+<?php
+require_once 'includes/auth.php';
+require_once 'config/db.php';
+
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    header('Location: login.php');
+    exit;
+}
+
+$username = trim($_POST['username'] ?? '');
+$password = $_POST['password'] ?? '';
+
+if ($username === '' || $password === '') {
+    header('Location: login.php?error=' . urlencode('Faltan datos'));
+    exit;
+}
+
+$stmt = $pdo->prepare('SELECT id, username, password FROM users WHERE username = ?');
+$stmt->execute([$username]);
+$user = $stmt->fetch();
+
+if (!$user || !password_verify($password, $user['password'])) {
+    header('Location: login.php?error=' . urlencode('Usuario o contraseña incorrectos'));
+    exit;
+}
+
+// Regenerar sesión para evitar session fixation
+session_regenerate_id(true);
+$_SESSION['user_id'] = $user['id'];
+$_SESSION['username'] = $user['username'];
+
+header('Location: dashboard.php');
+exit;
